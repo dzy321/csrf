@@ -1,5 +1,5 @@
 {
-  "name": "koa-csrf",
+  "name": "@terminus/koa-csrf",
   "description": "CSRF tokens for koa",
   "version": "2.5.0",
   "author": {

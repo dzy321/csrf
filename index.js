@@ -32,17 +32,17 @@ exports = module.exports = function (app, opts) {
      * @api public
      */
 
-    context.__defineGetter__('csrf', function () {
+    context.getCsrf = function () {
       if (this._csrf) return this._csrf
       if (!this.session) return null
       var secret = this.session.secret
         || (this.session.secret = tokens.secretSync())
       return this._csrf = tokens.create(secret)
-    })
+    }
 
-    response.__defineGetter__('csrf', function () {
-      return this.ctx.csrf
-    })
+    response.getCsrf = function () {
+      return this.ctx.getCsrf();
+    }
 
     /**
      * Asserts that a CSRF token exists and is valid.
@@ -63,27 +63,27 @@ exports = module.exports = function (app, opts) {
      **/
 
     context.assertCSRF =
-    context.assertCsrf = function (body) {
-      // no session
-      var secret = this.session.secret
-      if (!secret) this.throw(403, 'secret is missing')
+      context.assertCsrf = function (body) {
+        // no session
+        var secret = this.session.secret
+        if (!secret) this.throw(403, 'secret is missing')
 
-      var token = (body && body._csrf)
-        || (!opts.disableQuery && this.query && this.query._csrf)
-        || (this.get('x-csrf-token'))
-        || (this.get('x-xsrf-token'))
-        || body
-      if (!token) this.throw(403, 'token is missing')
-      if (!tokens.verify(secret, token)) this.throw(403, 'invalid csrf token')
+        var token = (body && body._csrf)
+          || (!opts.disableQuery && this.query && this.query._csrf)
+          || (this.get('x-csrf-token'))
+          || (this.get('x-xsrf-token'))
+          || body
+        if (!token) this.throw(403, 'token is missing')
+        if (!tokens.verify(secret, token)) this.throw(403, 'invalid csrf token')
 
-      return this
-    }
+        return this
+      }
 
     request.assertCSRF =
-    request.assertCsrf = function (body) {
-      this.ctx.assertCsrf(body)
-      return this
-    }
+      request.assertCsrf = function (body) {
+        this.ctx.assertCsrf(body)
+        return this
+      }
 
   }
 }

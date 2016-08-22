@@ -32,7 +32,7 @@ describe('CSRF Token', function () {
 
     it('a single token per request', function (done) {
       app.use(function* (next) {
-        this.response.csrf.should.equal(this.csrf)
+        this.response.getCsrf().should.equal(this.getCsrf())
         this.status = 204
       })
 
@@ -172,7 +172,7 @@ function App(opts) {
     if (this.path !== '/' && this.path !== '/string') return yield* next
 
     if (this.method === 'GET') {
-      this.body = this.csrf
+      this.body = this.getCsrf()
     } else if (this.method === 'POST') {
       var body
       try {

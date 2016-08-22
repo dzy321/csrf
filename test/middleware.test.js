@@ -16,7 +16,7 @@ describe('CSRF Token Middleware', function () {
       return yield next
 
     if (this.method === 'GET') {
-      this.body = this.csrf
+      this.body = this.getCsrf()
     } else if (this.method === 'POST') {
       this.status = 204
     }
@@ -45,10 +45,9 @@ describe('CSRF Token Middleware', function () {
       app.use(function* (next) {
         if (this.path !== '/asdf')
           return yield next
-        this.csrf.should.equal(this.csrf)
+        this.getCsrf().should.equal(this.getCsrf())
         this.status = 204
       })
-
       supertest(app.listen())
       .get('/asdf')
       .expect(204, done)
@@ -74,7 +73,7 @@ describe('CSRF Token Middleware', function () {
           return yield next
         this.session = null
         this.status = 204
-        should(this.csrf).not.be.ok
+        should(this.getCsrf()).not.be.ok
       })
 
       supertest(app.listen())
