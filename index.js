@@ -32,7 +32,7 @@ exports = module.exports = function (app, opts) {
      * @api public
      */
 
-    context.getCsrf = function () {
+    context.getCsrf = function* () {
       if (this._csrf) return this._csrf
       if (!this.session) return null
       var secret = this.session.secret
@@ -40,8 +40,8 @@ exports = module.exports = function (app, opts) {
       return this._csrf = tokens.create(secret)
     }
 
-    response.getCsrf = function () {
-      return this.ctx.getCsrf();
+    response.getCsrf = function* () {
+      return yield this.ctx.getCsrf()
     }
 
     /**
@@ -63,7 +63,7 @@ exports = module.exports = function (app, opts) {
      **/
 
     context.assertCSRF =
-      context.assertCsrf = function (body) {
+      context.assertCsrf = function* (body) {
         // no session
         var secret = this.session.secret
         if (!secret) this.throw(403, 'secret is missing')
@@ -80,8 +80,8 @@ exports = module.exports = function (app, opts) {
       }
 
     request.assertCSRF =
-      request.assertCsrf = function (body) {
-        this.ctx.assertCsrf(body)
+      request.assertCsrf = function* (body) {
+        yield this.ctx.assertCsrf(body)
         return this
       }
 
@@ -103,7 +103,7 @@ exports.middleware = function* (next) {
 
   // bodyparser middlewares maybe store body in request.body
   // or you can just set csrf token header
-  this.assertCSRF(this.request.body)
+  yield this.assertCSRF(this.request.body)
 
   yield next
 }

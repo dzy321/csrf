@@ -16,7 +16,7 @@ describe('CSRF Token Middleware', function () {
       return yield next
 
     if (this.method === 'GET') {
-      this.body = this.getCsrf()
+      this.body = yield this.getCsrf()
     } else if (this.method === 'POST') {
       this.status = 204
     }
@@ -29,42 +29,44 @@ describe('CSRF Token Middleware', function () {
   describe('should create', function () {
     it('a token', function (done) {
       request
-      .get('/')
-      .expect(200)
-      .expect(tokenregexp)
-      .end(function (err, res) {
-        if (err)
-          return done(err)
+        .get('/')
+        .expect(200)
+        .expect(tokenregexp)
+        .end(function (err, res) {
+          if (err)
+            return done(err)
 
-        csrf = res.text
-        done()
-      })
+          csrf = res.text
+          done()
+        })
     })
 
     it('a single token per request', function (done) {
       app.use(function* (next) {
         if (this.path !== '/asdf')
           return yield next
-        this.getCsrf().should.equal(this.getCsrf())
+        var responseCsrf = yield this.response.getCsrf()
+        var ctxCsrf = yield this.getCsrf()
+        responseCsrf.should.equal(ctxCsrf)
         this.status = 204
       })
       supertest(app.listen())
-      .get('/asdf')
-      .expect(204, done)
+        .get('/asdf')
+        .expect(204, done)
     })
 
     it('a new token per request', function (done) {
       request
-      .get('/')
-      .expect(200)
-      .expect(tokenregexp)
-      .end(function (err, res) {
-        if (err)
-          return done(err)
+        .get('/')
+        .expect(200)
+        .expect(tokenregexp)
+        .end(function (err, res) {
+          if (err)
+            return done(err)
 
-        csrf.should.not.equal(res.text)
-        done()
-      })
+          csrf.should.not.equal(res.text)
+          done()
+        })
     })
 
     it('a null token when session is invalid', function (done) {
@@ -73,58 +75,58 @@ describe('CSRF Token Middleware', function () {
           return yield next
         this.session = null
         this.status = 204
-        should(this.getCsrf()).not.be.ok
+        should(yield this.getCsrf()).not.be.ok
       })
 
       supertest(app.listen())
-      .get('/reset')
-      .expect(204, done)
+        .get('/reset')
+        .expect(204, done)
     })
   })
 
   describe('should assert', function () {
     it('when no token is supplied', function (done) {
       request
-      .post('/')
-      .expect(403, done)
+        .post('/')
+        .expect(403, done)
     })
   })
 
   describe('should not assert when the token is supplied via', function () {
     it('json body', function (done) {
       request
-      .post('/')
-      .send({
-        _csrf: csrf
-      })
-      .expect(204, done)
+        .post('/')
+        .send({
+          _csrf: csrf
+        })
+        .expect(204, done)
     })
 
     it('querystring', function (done) {
       request
-      .post('/?_csrf=' + encodeURIComponent(csrf))
-      .expect(204, done)
+        .post('/?_csrf=' + encodeURIComponent(csrf))
+        .expect(204, done)
     })
 
     it('querystring with body', function (done) {
       request
-      .post('/?_csrf=' + encodeURIComponent(csrf))
-      .send({ foo: 'bar' })
-      .expect(204, done)
+        .post('/?_csrf=' + encodeURIComponent(csrf))
+        .send({ foo: 'bar' })
+        .expect(204, done)
     })
 
     it('x-csrf-token', function (done) {
       request
-      .post('/')
-      .set('x-csrf-token', csrf)
-      .expect(204, done)
+        .post('/')
+        .set('x-csrf-token', csrf)
+        .expect(204, done)
     })
 
     it('x-xsrf-token', function (done) {
       request
-      .post('/')
-      .set('x-xsrf-token', csrf)
-      .expect(204, done)
+        .post('/')
+        .set('x-xsrf-token', csrf)
+        .expect(204, done)
     })
   })
 })
@@ -134,7 +136,7 @@ function App() {
   app.keys = ['a', 'b']
   app.use(sessions(app))
 
-  app.use(function *(next) {
+  app.use(function* (next) {
     if (this.is('application/json', 'application/x-www-form-urlencoded'))
       this.request.body = yield parse(this)
     yield* next

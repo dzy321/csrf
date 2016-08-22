@@ -1,5 +1,5 @@
 var supertest = require('supertest')
-var should = require('should');
+var should = require('should')
 var koa = require('koa')
 var sessions = require('koa-session')
 var parse = require('co-body')
@@ -32,7 +32,9 @@ describe('CSRF Token', function () {
 
     it('a single token per request', function (done) {
       app.use(function* (next) {
-        this.response.getCsrf().should.equal(this.getCsrf())
+        var responseCsrf = yield this.response.getCsrf()
+        var ctxCsrf = yield this.getCsrf()
+        responseCsrf.should.equal(ctxCsrf)
         this.status = 204
       })
 
@@ -158,7 +160,7 @@ describe('CSRF Token', function () {
       .send({
         _csrf: csrf
       })
-      .expect(204, done);
+      .expect(204, done)
     })
   })
 })
@@ -172,14 +174,14 @@ function App(opts) {
     if (this.path !== '/' && this.path !== '/string') return yield* next
 
     if (this.method === 'GET') {
-      this.body = this.getCsrf()
+      this.body = yield this.getCsrf()
     } else if (this.method === 'POST') {
       var body
       try {
         body = yield parse(this)
       } catch (err) {}
-      if (this.path === '/string') this.assertCSRF(body._csrf)
-      else this.request.assertCSRF(body)
+      if (this.path === '/string') yield this.assertCSRF(body._csrf)
+      else yield this.request.assertCSRF(body)
       this.status = 204
     }
   })
