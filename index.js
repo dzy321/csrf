@@ -32,16 +32,25 @@ exports = module.exports = function (app, opts) {
      * @api public
      */
 
-    context.getCsrf = function* () {
-      if (this._csrf) return this._csrf
-      if (!this.session) return null
-      var secret = this.session.secret
-        || (this.session.secret = tokens.secretSync())
-      return this._csrf = tokens.create(secret)
+    context.getCsrf = function () {
+      var that = this;
+      return new Promise(function (resolve) {
+        if (that._csrf) {
+          resolve(that._csrf)
+          return
+        }
+        if (!that.session) {
+          resolve(null)
+          return
+        }
+        var secret = that.session.secret
+          || (that.session.secret = tokens.secretSync())
+        resolve(that._csrf = tokens.create(secret))
+      });
     }
 
-    response.getCsrf = function* () {
-      return yield this.ctx.getCsrf()
+    response.getCsrf = function () {
+      return this.ctx.getCsrf()
     }
 
     /**
@@ -63,28 +72,29 @@ exports = module.exports = function (app, opts) {
      **/
 
     context.assertCSRF =
-      context.assertCsrf = function* (body) {
+      context.assertCsrf = function (body) {
         // no session
-        var secret = this.session.secret
-        if (!secret) this.throw(403, 'secret is missing')
+        var that = this;
+        return new Promise(function (resolve) {
+          var secret = that.session.secret
+          if (!secret) that.throw(403, 'secret is missing')
 
-        var token = (body && body._csrf)
-          || (!opts.disableQuery && this.query && this.query._csrf)
-          || (this.get('x-csrf-token'))
-          || (this.get('x-xsrf-token'))
-          || body
-        if (!token) this.throw(403, 'token is missing')
-        if (!tokens.verify(secret, token)) this.throw(403, 'invalid csrf token')
+          var token = (body && body._csrf)
+            || (!opts.disableQuery && that.query && that.query._csrf)
+            || (that.get('x-csrf-token'))
+            || (that.get('x-xsrf-token'))
+            || body
+          if (!token) that.throw(403, 'token is missing')
+          if (!tokens.verify(secret, token)) that.throw(403, 'invalid csrf token')
 
-        return this
+          resolve(that)
+        });
       }
 
     request.assertCSRF =
-      request.assertCsrf = function* (body) {
-        yield this.ctx.assertCsrf(body)
-        return this
+      request.assertCsrf = function (body) {
+        return this.ctx.assertCsrf(body)
       }
-
   }
 }
 
